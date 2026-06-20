@@ -51,10 +51,15 @@ async function run() {
             }
         });
 
-        app.get('/all-classes', async (req, res)=>{
-    const query = { status: 'approved' };
+        app.get('/all-classes', async (req, res) => {
+            const query = { status: 'approved' };
 
             const result = await classCollection.find(query).toArray()
+            res.json(result)
+        })
+
+        app.get('/admin-classes', async (req, res)=>{
+            const result = await classCollection.find().toArray()
             res.json(result)
         })
 
