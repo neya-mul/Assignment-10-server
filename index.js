@@ -2,7 +2,7 @@ require('dotenv').config();
 const cors = require('cors')
 
 const express = require('express')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const uri = process.env.MONGO_URI;
 const PORT = process.env.PORT || 5000
@@ -64,7 +64,24 @@ async function run() {
         })
 
 
+        app.patch('/admin-classes/:id', async(req, res)=>{
+            const {id} = req.params
+            const updatedData = req.body
+            const result = await classCollection.updateOne(
+                {_id: new ObjectId(id)},
+                {$set: updatedData}
+            )
+            res.json()
 
+        })
+
+// const { id } = req.params
+//             const updatedData = req.body
+//             const result =await petCollection.updateOne(
+//                 { _id: new ObjectId(id) },
+//                 { $set: updatedData }
+//             )
+//             res.json(result)
 
 
 
