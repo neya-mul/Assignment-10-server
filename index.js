@@ -71,7 +71,7 @@ async function run() {
                 {_id: new ObjectId(id)},
                 {$set: updatedData}
             )
-            res.json()
+            res.json(result)
 
         })
 
