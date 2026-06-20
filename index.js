@@ -52,7 +52,9 @@ async function run() {
         });
 
         app.get('/all-classes', async (req, res)=>{
-            const result = await classCollection.find().toArray()
+    const query = { status: 'approved' };
+
+            const result = await classCollection.find(query).toArray()
             res.json(result)
         })
 
