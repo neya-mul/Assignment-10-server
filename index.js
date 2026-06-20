@@ -1,9 +1,15 @@
 require('dotenv').config();
+const cors = require('cors')
+
 const express = require('express')
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express()
 const uri = process.env.MONGO_URI;
 const PORT = process.env.PORT || 5000
+
+
+app.use(cors())
+
 app.use(express.json());
 
 
@@ -29,17 +35,26 @@ async function run() {
 
 
         // collections
-        const db = client.db('pet-nest');
+        const db = client.db('fitness-cafe');
         const classCollection = db.collection('classes');
 
 
         // all apis
-        app.post('/all-classes', async (req, res)=>{
-            const classess = req.body
-            const result =  await classCollection.insertOne(classess)
+        app.post('/all-classes', async (req, res) => {
+            try {
+                const classData = req.body;
+                const result = await classCollection.insertOne(classData);
+                res.status(201).json(result);
+            } catch (error) {
+                console.error("Insert error:", error);
+                res.status(500).json({ error: "Failed to insert class" });
+            }
+        });
+
+        app.get('/all-classes', async (req, res)=>{
+            const result = await classCollection.find().toArray()
             res.json(result)
         })
-
 
 
 
