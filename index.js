@@ -76,7 +76,7 @@ async function run() {
         })
 
 // const { id } = req.params
-//             const updatedData = req.body
+//             const updatedData = req.bodyy
 //             const result =await petCollection.updateOne(
 //                 { _id: new ObjectId(id) },
 //                 { $set: updatedData }
