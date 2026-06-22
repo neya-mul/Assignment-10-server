@@ -58,30 +58,40 @@ async function run() {
             res.json(result)
         })
 
-        app.get('/admin-classes', async (req, res)=>{
+
+        app.get('/all-classes/:id', async (req, res) => {
+            const { id } = req.params
+            const query = { _id: new ObjectId(id) };
+
+
+            const result = await classCollection.find(query).toArray()
+            res.json(result)
+        })
+
+        app.get('/admin-classes', async (req, res) => {
             const result = await classCollection.find().toArray()
             res.json(result)
         })
 
 
-        app.patch('/admin-classes/:id', async(req, res)=>{
-            const {id} = req.params
+        app.patch('/admin-classes/:id', async (req, res) => {
+            const { id } = req.params
             const updatedData = req.body
             const result = await classCollection.updateOne(
-                {_id: new ObjectId(id)},
-                {$set: updatedData}
+                { _id: new ObjectId(id) },
+                { $set: updatedData }
             )
             res.json(result)
 
         })
 
-// const { id } = req.params
-//             const updatedData = req.bodyy
-//             const result =await petCollection.updateOne(
-//                 { _id: new ObjectId(id) },
-//                 { $set: updatedData }
-//             )
-//             res.json(result)
+        // const { id } = req.params
+        //             const updatedData = req.bodyy
+        //             const result =await petCollection.updateOne(
+        //                 { _id: new ObjectId(id) },
+        //                 { $set: updatedData }
+        //             )
+        //             res.json(result)
 
 
 
