@@ -110,7 +110,7 @@ async function run() {
         });
 
 
-        app.patch('/update-class/:id', async (req, res)=>{
+        app.patch('/update-class/:id', async (req, res) => {
             const { id } = req.params
             const updatedData = req.body
             const result = await classCollection.updateOne(
@@ -120,6 +120,17 @@ async function run() {
             res.json(result)
 
         })
+
+
+        app.delete('/delete-class/:id', async (req, res) => {
+            const { id } = req.params;
+
+            const result = await classCollection.deleteOne({
+                _id: new ObjectId(id)
+            });
+
+            res.json(result);
+        });
 
         // const { id } = req.params
         //             const updatedData = req.bodyy
