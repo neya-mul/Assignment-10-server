@@ -37,6 +37,8 @@ async function run() {
         // collections
         const db = client.db('fitness-cafe');
         const classCollection = db.collection('classes');
+        const forumCollection = db.collection('forums');
+
 
 
         // all apis
@@ -132,6 +134,13 @@ async function run() {
             res.json(result);
         });
 
+
+
+        app.post('/forum-posts', async (req, res) => {
+            const forum = req.body
+            const result =await forumCollection.insertOne(forum)
+            res.json(result)
+        })
         // const { id } = req.params
         //             const updatedData = req.bodyy
         //             const result =await petCollection.updateOne(
