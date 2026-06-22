@@ -85,6 +85,42 @@ async function run() {
 
         })
 
+
+
+
+        app.delete('/admin-classes/:id', async (req, res) => {
+            const { id } = req.params;
+
+            const result = await classCollection.deleteOne({
+                _id: new ObjectId(id)
+            });
+
+            res.json(result);
+        });
+
+
+        app.get('/my-classes/:trainerId', async (req, res) => {
+            const { trainerId } = req.params;
+
+            const result = await classCollection
+                .find({ trainerId })
+                .toArray();
+
+            res.json(result);
+        });
+
+
+        app.patch('/update-class/:id', async (req, res)=>{
+            const { id } = req.params
+            const updatedData = req.body
+            const result = await classCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updatedData }
+            )
+            res.json(result)
+
+        })
+
         // const { id } = req.params
         //             const updatedData = req.bodyy
         //             const result =await petCollection.updateOne(
