@@ -138,9 +138,36 @@ async function run() {
 
         app.post('/forum-posts', async (req, res) => {
             const forum = req.body
-            const result =await forumCollection.insertOne(forum)
+            const result = await forumCollection.insertOne(forum)
             res.json(result)
         })
+
+        
+        app.get('/my-forum-posts/:userId', async (req, res) => {
+            const { userId } = req.params;
+
+            const result = await forumCollection.find({
+                userId: userId
+            }).toArray();
+
+            res.json(result);
+        });
+
+
+
+
+
+
+        // app.get('/all-classes/:id', async (req, res) => {
+        //     const { id } = req.params
+        //     const query = { _id: new ObjectId(id) };
+
+
+        //     const result = await classCollection.find(query).toArray()
+        //     res.json(result)
+        // })
+
+
         // const { id } = req.params
         //             const updatedData = req.bodyy
         //             const result =await petCollection.updateOne(
