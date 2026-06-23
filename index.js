@@ -142,7 +142,13 @@ async function run() {
             res.json(result)
         })
 
-        
+        app.get('/forum-posts', async (req, res) => {
+            // const query = {}
+            const result = await forumCollection.find().toArray()
+            res.json(result)
+        })
+
+
         app.get('/my-forum-posts/:userId', async (req, res) => {
             const { userId } = req.params;
 
