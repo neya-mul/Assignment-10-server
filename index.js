@@ -38,6 +38,7 @@ async function run() {
         const db = client.db('fitness-cafe');
         const classCollection = db.collection('classes');
         const forumCollection = db.collection('forums');
+        const userCollection = db.collection('user')
 
 
 
@@ -159,7 +160,10 @@ async function run() {
             res.json(result);
         });
 
-
+        app.get('/users', async (req, res) => {
+            const result = await userCollection.find().toArray()
+            res.json(result)
+        })
 
 
 
