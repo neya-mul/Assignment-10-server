@@ -35,6 +35,7 @@ async function run() {
         const classCollection = db.collection('classes');
         const forumCollection = db.collection('forums');
         const userCollection = db.collection('user');
+        const myBookedClasesCollection = db.collection('my-booked-classes')
 
         // ==========================================
         // ALL APIS
@@ -151,7 +152,7 @@ async function run() {
         app.patch('/users/:id', async (req, res) => {
             try {
                 const { id } = req.params;
-                const { status, role } = req.body; 
+                const { status, role } = req.body;
 
                 const filter = { _id: new ObjectId(id) };
 
@@ -168,6 +169,21 @@ async function run() {
                 res.status(500).json({ error: "Failed to update user data" });
             }
         });
+
+
+
+
+
+        app.post('/my-booked-classes', async (req, res) => {
+            const myBookedClases = req.body;
+            const result = await myBookedClasesCollection.insertOne(myBookedClases);
+            res.json(result);
+        })
+
+
+
+
+
 
     } finally {
         // Ensures that the client will close when you finish/error
