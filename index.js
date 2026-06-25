@@ -143,6 +143,14 @@ async function run() {
             res.json(result);
         });
 
+        app.get('/forum-posts/:id', async (req, res) => {
+            const { id } = req.params
+            const query = { _id: new ObjectId(id) };
+
+            const result = await forumCollection.find(query).toArray()
+            res.json(result);
+        });
+
         app.get('/my-forum-posts/:userId', async (req, res) => {
             const { userId } = req.params;
             const result = await forumCollection.find({
@@ -151,6 +159,77 @@ async function run() {
             res.json(result);
         });
 
+        // 🎯 NEW: TOGGLE LIKE OPERATION (Atomic Array Update)
+      // 🎯 1. TOGGLE LIKE (Like & Unlike)
+        app.patch('/forum-posts/:id/toggle-like', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { userId } = req.body;
+                if (!userId) return res.status(400).json({ message: "User ID required" });
+
+                const query = { _id: new ObjectId(id) };
+                const post = await forumCollection.findOne(query);
+                if (!post) return res.status(404).json({ message: "Post not found" });
+
+                const currentLikes = post.likes || [];
+                const currentDislikes = post.dislikes || [];
+
+                if (currentLikes.includes(userId)) {
+                    // অলরেডি লাইক থাকলে -> Unlike করুন
+                    await forumCollection.updateOne(query, { $pull: { likes: userId } });
+                } else {
+                    // লাইক না থাকলে -> Like করুন এবং Dislikes থেকে রিমুভ করুন
+                    await forumCollection.updateOne(query, { 
+                        $addToSet: { likes: userId },
+                        $pull: { dislikes: userId }
+                    });
+                }
+
+                // আপডেটেড ডাটা নিয়ে এসে রিটার্ন করা
+                const updatedPost = await forumCollection.findOne(query);
+                res.status(200).json({ 
+                    updatedLikes: updatedPost.likes || [], 
+                    updatedDislikes: updatedPost.dislikes || [] 
+                });
+            } catch (error) {
+                res.status(500).json({ message: "Error toggling like", error: error.message });
+            }
+        });
+
+        // 🎯 2. TOGGLE DISLIKE (Dislike & Un-dislike)
+        app.patch('/forum-posts/:id/toggle-dislike', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { userId } = req.body;
+                if (!userId) return res.status(400).json({ message: "User ID required" });
+
+                const query = { _id: new ObjectId(id) };
+                const post = await forumCollection.findOne(query);
+                if (!post) return res.status(404).json({ message: "Post not found" });
+
+                const currentLikes = post.likes || [];
+                const currentDislikes = post.dislikes || [];
+
+                if (currentDislikes.includes(userId)) {
+                    // অলরেডি ডিসলাইক থাকলে -> Un-dislike করুন
+                    await forumCollection.updateOne(query, { $pull: { dislikes: userId } });
+                } else {
+                    // ডিসলাইক না থাকলে -> Dislike করুন এবং Likes থেকে রিমুভ করুন
+                    await forumCollection.updateOne(query, { 
+                        $addToSet: { dislikes: userId },
+                        $pull: { likes: userId }
+                    });
+                }
+
+                const updatedPost = await forumCollection.findOne(query);
+                res.status(200).json({ 
+                    updatedLikes: updatedPost.likes || [], 
+                    updatedDislikes: updatedPost.dislikes || [] 
+                });
+            } catch (error) {
+                res.status(500).json({ message: "Error toggling dislike", error: error.message });
+            }
+        });
         // --- USER MANAGEMENT ---
 
         app.get('/users', async (req, res) => {
@@ -301,7 +380,7 @@ async function run() {
 
         app.get('/apply-as-trainer/:email', async (req, res) => {
             const { email } = req.params
-            const result = await applyForTrainerCollection.findOne({userEmail: email })
+            const result = await applyForTrainerCollection.findOne({ userEmail: email })
             res.json(result)
         })
 
