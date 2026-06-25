@@ -32,9 +32,23 @@ async function run() {
         const db = client.db('fitness-cafe');
         const classCollection = db.collection('classes');
         const forumCollection = db.collection('forums');
-        const userCollection = db.collection('user');
+        const userCollection = db.collection('user'); // Singular 'user' collection
         const myBookedClasesCollection = db.collection('my-booked-classes');
         const favoritesCollection = db.collection('favorites');
+
+        // 🛡️ SECURITY HELPER: Safely verify if a user's status is 'blocked'
+        const isUserBlocked = async (userId) => {
+            if (!userId) return false;
+            try {
+                const query = ObjectId.isValid(userId) 
+                    ? { $or: [{ _id: userId }, { _id: new ObjectId(userId) }] }
+                    : { _id: userId };
+                const user = await userCollection.findOne(query);
+                return user?.status === 'blocked';
+            } catch (error) {
+                return false;
+            }
+        };
 
         // ==========================================
         // ALL APIS
@@ -171,9 +185,24 @@ async function run() {
 
         // --- BOOKED CLASSES ---
 
+        // Secure Booking logic from duplicate processing or blocked actors
         app.post('/my-booked-classes', async (req, res) => {
             try {
                 const myBookedClases = req.body;
+                const { userId, classId } = myBookedClases;
+
+                // 1. 🛑 Backend Block Guard
+                const blocked = await isUserBlocked(userId);
+                if (blocked) {
+                    return res.status(403).json({ error: "Your account is suspended. Booking operations restricted." });
+                }
+
+                // 2. 🛑 Backend Duplicate Booking Guard
+                const exists = await myBookedClasesCollection.findOne({ classId, userId });
+                if (exists) {
+                    return res.status(400).json({ error: "You are already registered for this class." });
+                }
+
                 const result = await myBookedClasesCollection.insertOne(myBookedClases);
                 res.json(result);
             } catch (error) {
@@ -182,18 +211,16 @@ async function run() {
             }
         });
 
-        // ✅ FIXED: Check if a class is already booked by a user
-        // Must be defined BEFORE /my-booked-classes/:userEmail to avoid route conflict
-        app.get('/bookings/check', async (req, res) => {
-            try {
-                const { classId, userId } = req.query;
-                const found = await myBookedClasesCollection.findOne({ classId, userId });
-                res.json({ booked: !!found });
-            } catch (error) {
-                console.error("Booking check error:", error);
-                res.status(500).json({ error: "Failed to check booking status" });
-            }
-        });
+        // Check if a class is already booked by a user
+       app.get('/bookings/check', async (req, res) => {
+  try {
+    const { classId, userEmail } = req.query; // ✅ use userEmail instead
+    const found = await myBookedClasesCollection.findOne({ classId, userEmail });
+    res.json({ booked: !!found });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to check booking status" });
+  }
+});
 
         app.get('/my-booked-classes/:userEmail', async (req, res) => {
             try {
@@ -212,12 +239,16 @@ async function run() {
         app.post('/favorites', async (req, res) => {
             try {
                 const favoriteDoc = req.body;
+                const { classId, userId } = favoriteDoc;
 
-                const exists = await favoritesCollection.findOne({
-                    classId: favoriteDoc.classId,
-                    userId: favoriteDoc.userId
-                });
+                // 1. 🛑 Backend Block Guard
+                const blocked = await isUserBlocked(userId);
+                if (blocked) {
+                    return res.status(403).json({ error: "Your account is suspended. Actions restricted." });
+                }
 
+                // 2. Prevent duplicate saves
+                const exists = await favoritesCollection.findOne({ classId, userId });
                 if (exists) {
                     return res.status(400).json({ error: "Class already in favorites" });
                 }
