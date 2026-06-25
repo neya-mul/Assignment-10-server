@@ -24,9 +24,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        // Connect the client to the server (optional starting in v4.7)
         await client.connect();
-        // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
@@ -35,11 +33,14 @@ async function run() {
         const classCollection = db.collection('classes');
         const forumCollection = db.collection('forums');
         const userCollection = db.collection('user');
-        const myBookedClasesCollection = db.collection('my-booked-classes')
+        const myBookedClasesCollection = db.collection('my-booked-classes');
+        const favoritesCollection = db.collection('favorites');
 
         // ==========================================
         // ALL APIS
         // ==========================================
+
+        // --- CLASSES ---
 
         app.post('/all-classes', async (req, res) => {
             try {
@@ -114,6 +115,8 @@ async function run() {
             res.json(result);
         });
 
+        // --- FORUM POSTS ---
+
         app.post('/forum-posts', async (req, res) => {
             const forum = req.body;
             const result = await forumCollection.insertOne(forum);
@@ -133,11 +136,8 @@ async function run() {
             res.json(result);
         });
 
-        // ----------------------------------------------------
-        // --- CLEAN & CORRECTED USER MANAGEMENT ROUTES ---
-        // ----------------------------------------------------
+        // --- USER MANAGEMENT ---
 
-        // GET: Fetch all users (ডুপ্লিকেট রিমুভড)
         app.get('/users', async (req, res) => {
             try {
                 const result = await userCollection.find().toArray();
@@ -148,7 +148,6 @@ async function run() {
             }
         });
 
-        // PATCH: Dynamic update for user status OR role (১টি রাউটে দুটি কাজই হবে)
         app.patch('/users/:id', async (req, res) => {
             try {
                 const { id } = req.params;
@@ -170,23 +169,89 @@ async function run() {
             }
         });
 
-
-
-
+        // --- BOOKED CLASSES ---
 
         app.post('/my-booked-classes', async (req, res) => {
-            const myBookedClases = req.body;
-            const result = await myBookedClasesCollection.insertOne(myBookedClases);
-            res.json(result);
-        })
+            try {
+                const myBookedClases = req.body;
+                const result = await myBookedClasesCollection.insertOne(myBookedClases);
+                res.json(result);
+            } catch (error) {
+                console.error("Booking insert error:", error);
+                res.status(500).json({ error: "Failed to book class" });
+            }
+        });
 
+        // ✅ FIXED: Check if a class is already booked by a user
+        // Must be defined BEFORE /my-booked-classes/:userEmail to avoid route conflict
+        app.get('/bookings/check', async (req, res) => {
+            try {
+                const { classId, userId } = req.query;
+                const found = await myBookedClasesCollection.findOne({ classId, userId });
+                res.json({ booked: !!found });
+            } catch (error) {
+                console.error("Booking check error:", error);
+                res.status(500).json({ error: "Failed to check booking status" });
+            }
+        });
 
+        app.get('/my-booked-classes/:userEmail', async (req, res) => {
+            try {
+                const { userEmail } = req.params;
+                const result = await myBookedClasesCollection.find({ userEmail: userEmail }).toArray();
+                res.json(result);
+            } catch (error) {
+                console.error("Fetch booked classes error:", error);
+                res.status(500).json({ error: "Failed to fetch booked classes" });
+            }
+        });
 
+        // --- FAVORITES ---
 
+        // Add to favorites
+        app.post('/favorites', async (req, res) => {
+            try {
+                const favoriteDoc = req.body;
 
+                const exists = await favoritesCollection.findOne({
+                    classId: favoriteDoc.classId,
+                    userId: favoriteDoc.userId
+                });
+
+                if (exists) {
+                    return res.status(400).json({ error: "Class already in favorites" });
+                }
+
+                const result = await favoritesCollection.insertOne(favoriteDoc);
+                res.json({ success: true, result });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Remove from favorites
+        app.delete('/favorites', async (req, res) => {
+            try {
+                const { classId, userId } = req.body;
+                const result = await favoritesCollection.deleteOne({ classId, userId });
+                res.json({ success: true, deletedCount: result.deletedCount });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Check favorite status
+        app.get('/favorites/check', async (req, res) => {
+            try {
+                const { classId, userId } = req.query;
+                const found = await favoritesCollection.findOne({ classId, userId });
+                res.json({ favorited: !!found });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
 
     } finally {
-        // Ensures that the client will close when you finish/error
         // await client.close();
     }
 }
