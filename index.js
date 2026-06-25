@@ -35,12 +35,13 @@ async function run() {
         const userCollection = db.collection('user'); // Singular 'user' collection
         const myBookedClasesCollection = db.collection('my-booked-classes');
         const favoritesCollection = db.collection('favorites');
+        const applyForTrainerCollection = db.collection('apply-for-trainer')
 
         // 🛡️ SECURITY HELPER: Safely verify if a user's status is 'blocked'
         const isUserBlocked = async (userId) => {
             if (!userId) return false;
             try {
-                const query = ObjectId.isValid(userId) 
+                const query = ObjectId.isValid(userId)
                     ? { $or: [{ _id: userId }, { _id: new ObjectId(userId) }] }
                     : { _id: userId };
                 const user = await userCollection.findOne(query);
@@ -212,15 +213,15 @@ async function run() {
         });
 
         // Check if a class is already booked by a user
-       app.get('/bookings/check', async (req, res) => {
-  try {
-    const { classId, userEmail } = req.query; // ✅ use userEmail instead
-    const found = await myBookedClasesCollection.findOne({ classId, userEmail });
-    res.json({ booked: !!found });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to check booking status" });
-  }
-});
+        app.get('/bookings/check', async (req, res) => {
+            try {
+                const { classId, userEmail } = req.query;
+                const found = await myBookedClasesCollection.findOne({ classId, userEmail });
+                res.json({ booked: !!found });
+            } catch (error) {
+                res.status(500).json({ error: "Failed to check booking status" });
+            }
+        });
 
         app.get('/my-booked-classes/:userEmail', async (req, res) => {
             try {
@@ -260,6 +261,14 @@ async function run() {
             }
         });
 
+        app.get('/favourites/:userId', async (req, res) => {
+            const { userId } = req.params
+            // console.log(userId,'userId');
+
+            const result = await favoritesCollection.find({ userId: userId }).toArray()
+            res.json(result)
+        })
+
         // Remove from favorites
         app.delete('/favorites', async (req, res) => {
             try {
@@ -281,6 +290,21 @@ async function run() {
                 res.status(500).json({ error: error.message });
             }
         });
+
+
+
+        app.post('/apply-as-trainer', async (req, res) => {
+            const applyForTrainer = req.body
+            const result = await applyForTrainerCollection.insertOne(applyForTrainer)
+            res.json(result)
+        })
+
+        app.get('/apply-as-trainer/:email', async (req, res) => {
+            const { email } = req.params
+            const result = await applyForTrainerCollection.findOne({userEmail: email })
+            res.json(result)
+        })
+
 
     } finally {
         // await client.close();
