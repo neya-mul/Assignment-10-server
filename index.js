@@ -149,6 +149,15 @@ async function run() {
             res.json(result);
         });
 
+
+        app.delete('/forum-posts/:id', async (req, res) => {
+            const { id } = req.params
+            const result = await forumCollection.deleteOne({
+                _id: new ObjectId(id)
+            })
+            res.json(result)
+        });
+
         app.get('/forum-posts/:id', async (req, res) => {
             const { id } = req.params
             const query = { _id: new ObjectId(id) };
@@ -226,7 +235,7 @@ async function run() {
                 res.status(500).json({ message: "Error toggling dislike", error: error.message });
             }
         });
-        
+
         // --- USER MANAGEMENT ---
 
         app.get('/users', async (req, res) => {
