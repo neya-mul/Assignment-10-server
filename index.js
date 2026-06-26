@@ -76,7 +76,6 @@ async function run() {
 
 
         app.get('/all-classes-admin', async (req, res) => {
-            // const query = { status: 'approved' };
             const result = await classCollection.find().toArray();
             res.json(result);
         });
@@ -166,8 +165,6 @@ async function run() {
             res.json(result);
         });
 
-        // 🎯 NEW: TOGGLE LIKE OPERATION (Atomic Array Update)
-      // 🎯 1. TOGGLE LIKE (Like & Unlike)
         app.patch('/forum-posts/:id/toggle-like', async (req, res) => {
             try {
                 const { id } = req.params;
@@ -179,31 +176,26 @@ async function run() {
                 if (!post) return res.status(404).json({ message: "Post not found" });
 
                 const currentLikes = post.likes || [];
-                const currentDislikes = post.dislikes || [];
 
                 if (currentLikes.includes(userId)) {
-                    // অলরেডি লাইক থাকলে -> Unlike করুন
                     await forumCollection.updateOne(query, { $pull: { likes: userId } });
                 } else {
-                    // লাইক না থাকলে -> Like করুন এবং Dislikes থেকে রিমুভ করুন
-                    await forumCollection.updateOne(query, { 
+                    await forumCollection.updateOne(query, {
                         $addToSet: { likes: userId },
                         $pull: { dislikes: userId }
                     });
                 }
 
-                // আপডেটেড ডাটা নিয়ে এসে রিটার্ন করা
                 const updatedPost = await forumCollection.findOne(query);
-                res.status(200).json({ 
-                    updatedLikes: updatedPost.likes || [], 
-                    updatedDislikes: updatedPost.dislikes || [] 
+                res.status(200).json({
+                    updatedLikes: updatedPost.likes || [],
+                    updatedDislikes: updatedPost.dislikes || []
                 });
             } catch (error) {
                 res.status(500).json({ message: "Error toggling like", error: error.message });
             }
         });
 
-        // 🎯 2. TOGGLE DISLIKE (Dislike & Un-dislike)
         app.patch('/forum-posts/:id/toggle-dislike', async (req, res) => {
             try {
                 const { id } = req.params;
@@ -214,29 +206,27 @@ async function run() {
                 const post = await forumCollection.findOne(query);
                 if (!post) return res.status(404).json({ message: "Post not found" });
 
-                const currentLikes = post.likes || [];
                 const currentDislikes = post.dislikes || [];
 
                 if (currentDislikes.includes(userId)) {
-                    // অলরেডি ডিসলাইক থাকলে -> Un-dislike করুন
                     await forumCollection.updateOne(query, { $pull: { dislikes: userId } });
                 } else {
-                    // ডিসলাইক না থাকলে -> Dislike করুন এবং Likes থেকে রিমুভ করুন
-                    await forumCollection.updateOne(query, { 
+                    await forumCollection.updateOne(query, {
                         $addToSet: { dislikes: userId },
                         $pull: { likes: userId }
                     });
                 }
 
                 const updatedPost = await forumCollection.findOne(query);
-                res.status(200).json({ 
-                    updatedLikes: updatedPost.likes || [], 
-                    updatedDislikes: updatedPost.dislikes || [] 
+                res.status(200).json({
+                    updatedLikes: updatedPost.likes || [],
+                    updatedDislikes: updatedPost.dislikes || []
                 });
             } catch (error) {
                 res.status(500).json({ message: "Error toggling dislike", error: error.message });
             }
         });
+
         // --- USER MANAGEMENT ---
 
         app.get('/users', async (req, res) => {
@@ -272,19 +262,16 @@ async function run() {
 
         // --- BOOKED CLASSES ---
 
-        // Secure Booking logic from duplicate processing or blocked actors
         app.post('/my-booked-classes', async (req, res) => {
             try {
                 const myBookedClases = req.body;
                 const { userId, classId } = myBookedClases;
 
-                // 1. 🛑 Backend Block Guard
                 const blocked = await isUserBlocked(userId);
                 if (blocked) {
                     return res.status(403).json({ error: "Your account is suspended. Booking operations restricted." });
                 }
 
-                // 2. 🛑 Backend Duplicate Booking Guard
                 const exists = await myBookedClasesCollection.findOne({ classId, userId });
                 if (exists) {
                     return res.status(400).json({ error: "You are already registered for this class." });
@@ -298,7 +285,6 @@ async function run() {
             }
         });
 
-        // Check if a class is already booked by a user
         app.get('/bookings/check', async (req, res) => {
             try {
                 const { classId, userEmail } = req.query;
@@ -333,19 +319,16 @@ async function run() {
 
         // --- FAVORITES ---
 
-        // Add to favorites
         app.post('/favorites', async (req, res) => {
             try {
                 const favoriteDoc = req.body;
                 const { classId, userId } = favoriteDoc;
 
-                // 1. 🛑 Backend Block Guard
                 const blocked = await isUserBlocked(userId);
                 if (blocked) {
                     return res.status(403).json({ error: "Your account is suspended. Actions restricted." });
                 }
 
-                // 2. Prevent duplicate saves
                 const exists = await favoritesCollection.findOne({ classId, userId });
                 if (exists) {
                     return res.status(400).json({ error: "Class already in favorites" });
@@ -360,13 +343,10 @@ async function run() {
 
         app.get('/favourites/:userId', async (req, res) => {
             const { userId } = req.params
-            // console.log(userId,'userId');
-
             const result = await favoritesCollection.find({ userId: userId }).toArray()
             res.json(result)
         })
 
-        // Remove from favorites
         app.delete('/favorites', async (req, res) => {
             try {
                 const { classId, userId } = req.body;
@@ -377,7 +357,6 @@ async function run() {
             }
         });
 
-        // Check favorite status
         app.get('/favorites/check', async (req, res) => {
             try {
                 const { classId, userId } = req.query;
@@ -388,11 +367,16 @@ async function run() {
             }
         });
 
-
+        // --- TRAINER APPLICATIONS ---
 
         app.post('/apply-as-trainer', async (req, res) => {
             const applyForTrainer = req.body
             const result = await applyForTrainerCollection.insertOne(applyForTrainer)
+            res.json(result)
+        })
+
+        app.get('/apply-as-traienr', async (req, res) => {
+            const result = await applyForTrainerCollection.find().toArray()
             res.json(result)
         })
 
@@ -401,6 +385,50 @@ async function run() {
             const result = await applyForTrainerCollection.findOne({ userEmail: email })
             res.json(result)
         })
+
+        // 🎯 NEW DESIGNATED HANDLER: PROMOTION AND PIPELINE REMOVAL
+        // 🎯 APPROVE TRAINER APPLICATION & UPGRADE ROLE
+        app.patch('/approve-trainer/:id', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { userEmail } = req.body; // This is the email string passed from the frontend
+
+                if (!userEmail) {
+                    return res.status(400).json({ error: "User email context is required." });
+                }
+
+                // 👑 FIX: Changed the search key to 'email' to match your MongoDB Atlas schema exactly!
+                const userUpdateResult = await userCollection.updateOne(
+                    { email: userEmail },
+                    { $set: { role: 'trainer' } }
+                );
+
+                // 2. Remove the processed entry out of the application queue 
+                const deleteApplicationResult = await applyForTrainerCollection.deleteOne({
+                    _id: new ObjectId(id)
+                });
+
+                res.status(200).json({
+                    success: true,
+                    message: "User system role elevated successfully.",
+                    userUpdateResult,
+                    deleteApplicationResult
+                });
+            } catch (error) {
+                console.error("Approval flow failure:", error);
+                res.status(500).json({ error: "Internal server deployment failure." });
+            }
+        });
+        // 🎯 OPTIONAL: REJECTION PIPELINE REMOVAL ROUTE
+        app.delete('/reject-trainer/:id', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const result = await applyForTrainerCollection.deleteOne({ _id: new ObjectId(id) });
+                res.json({ success: true, result });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
 
 
     } finally {
