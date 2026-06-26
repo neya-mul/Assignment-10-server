@@ -74,6 +74,13 @@ async function run() {
             res.json(result);
         });
 
+
+        app.get('/all-classes-admin', async (req, res) => {
+            // const query = { status: 'approved' };
+            const result = await classCollection.find().toArray();
+            res.json(result);
+        });
+
         app.get('/all-classes/:id', async (req, res) => {
             const { id } = req.params;
             const query = { _id: new ObjectId(id) };
@@ -306,6 +313,17 @@ async function run() {
             try {
                 const { userEmail } = req.params;
                 const result = await myBookedClasesCollection.find({ userEmail: userEmail }).toArray();
+                res.json(result);
+            } catch (error) {
+                console.error("Fetch booked classes error:", error);
+                res.status(500).json({ error: "Failed to fetch booked classes" });
+            }
+        });
+
+
+        app.get('/admin-booked-classes', async (req, res) => {
+            try {
+                const result = await myBookedClasesCollection.find().toArray();
                 res.json(result);
             } catch (error) {
                 console.error("Fetch booked classes error:", error);
