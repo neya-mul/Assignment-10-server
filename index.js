@@ -226,7 +226,7 @@ async function run() {
                 res.status(500).json({ message: "Error toggling dislike", error: error.message });
             }
         });
-
+        
         // --- USER MANAGEMENT ---
 
         app.get('/users', async (req, res) => {
@@ -239,6 +239,7 @@ async function run() {
             }
         });
 
+        // 🎯 এটি আপনার আগের তৈরি করা PATCH রাউট যা ফ্রন্টএন্ড থেকে রিকোয়েস্ট গ্রহণ করে রোল পরিবর্তন করবে
         app.patch('/users/:id', async (req, res) => {
             try {
                 const { id } = req.params;
@@ -367,7 +368,6 @@ async function run() {
             }
         });
 
-        // --- TRAINER APPLICATIONS ---
 
         app.post('/apply-as-trainer', async (req, res) => {
             const applyForTrainer = req.body
@@ -386,45 +386,15 @@ async function run() {
             res.json(result)
         })
 
-        // 🎯 NEW DESIGNATED HANDLER: PROMOTION AND PIPELINE REMOVAL
-        // 🎯 APPROVE TRAINER APPLICATION & UPGRADE ROLE
+        // --- NEW APPROVED FLOW CREATED IN LAST STEP (IF NEEDED) ---
         app.patch('/approve-trainer/:id', async (req, res) => {
             try {
                 const { id } = req.params;
-                const { userEmail } = req.body; // This is the email string passed from the frontend
-
-                if (!userEmail) {
-                    return res.status(400).json({ error: "User email context is required." });
-                }
-
-                // 👑 FIX: Changed the search key to 'email' to match your MongoDB Atlas schema exactly!
-                const userUpdateResult = await userCollection.updateOne(
-                    { email: userEmail },
-                    { $set: { role: 'trainer' } }
-                );
-
-                // 2. Remove the processed entry out of the application queue 
-                const deleteApplicationResult = await applyForTrainerCollection.deleteOne({
-                    _id: new ObjectId(id)
-                });
-
-                res.status(200).json({
-                    success: true,
-                    message: "User system role elevated successfully.",
-                    userUpdateResult,
-                    deleteApplicationResult
-                });
-            } catch (error) {
-                console.error("Approval flow failure:", error);
-                res.status(500).json({ error: "Internal server deployment failure." });
-            }
-        });
-        // 🎯 OPTIONAL: REJECTION PIPELINE REMOVAL ROUTE
-        app.delete('/reject-trainer/:id', async (req, res) => {
-            try {
-                const { id } = req.params;
-                const result = await applyForTrainerCollection.deleteOne({ _id: new ObjectId(id) });
-                res.json({ success: true, result });
+                const { userEmail } = req.body;
+                if (!userEmail) return res.status(400).json({ error: "User email context is required." });
+                await userCollection.updateOne({ userEmail: userEmail }, { $set: { role: 'trainer' } });
+                await applyForTrainerCollection.deleteOne({ _id: new ObjectId(id) });
+                res.status(200).json({ success: true });
             } catch (error) {
                 res.status(500).json({ error: error.message });
             }
