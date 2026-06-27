@@ -67,11 +67,38 @@ async function run() {
                 res.status(500).json({ error: "Failed to insert class" });
             }
         });
+        
 
         app.get('/all-classes', async (req, res) => {
-            const query = { status: 'approved' };
-            const result = await classCollection.find(query).toArray();
-            res.json(result);
+            try {
+                const { search, category } = req.query;
+
+                // Always start from approved classes only
+                const query = { status: 'approved' };
+
+                // ── Category filter ──
+                if (category && category.toLowerCase() !== 'all') {
+                    query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+                }
+
+                // ── Text search across multiple fields ──
+                if (search && search.trim()) {
+                    const searchRegex = new RegExp(search.trim(), 'i');
+                    query.$or = [
+                        { name: searchRegex },
+                        { title: searchRegex },
+                        { instructor: searchRegex },
+                        { description: searchRegex },
+                    ];
+                }
+
+                const result = await classCollection.find(query).toArray();
+                res.json(result);
+
+            } catch (error) {
+                console.error('Error fetching classes:', error);
+                res.status(500).json({ message: 'Internal server error' });
+            }
         });
 
 
