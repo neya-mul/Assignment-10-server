@@ -1,7 +1,8 @@
 require('dotenv').config();
 const cors = require('cors')
 
-const express = require('express')
+const express = require('express');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const uri = process.env.MONGO_URI;
@@ -21,6 +22,41 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+const JWKS = createRemoteJWKSet(new URL(`${process.env.NEXT_PUBLIC_URL}japi/auth/jwks`)) // Note: Fixed URL slash
+
+const verifyToken = async (req, res, next) => {
+    const authHeader = req?.headers.authorization
+
+    // 1. Fail early if header is missing OR doesn't start with "Bearer "
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Unauthorized: Missing or malformed token format' })
+    }
+
+    // 2. Safely slice out the token after the "Bearer " prefix (7 characters)
+    const token = authHeader.substring(7).trim()
+
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Token payload is empty' })
+    }
+
+
+    console.log("TOKEN RECEIVED:", token)
+    console.log("JWKS URL:", `${process.env.CLIENT_URL}/api/auth/jwks`)
+
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+
+        // 3. Attach the payload to the request object so your router endpoints can access user info
+        req.user = payload
+
+        next()
+    }
+    catch (error) {
+        console.error("JWT Verification failed:", error.message)
+        return res.status(403).json({ message: 'Forbidden' })
+    }
+}
 
 async function run() {
     try {
@@ -67,7 +103,7 @@ async function run() {
                 res.status(500).json({ error: "Failed to insert class" });
             }
         });
-        
+
 
         app.get('/all-classes', async (req, res) => {
             try {
@@ -107,7 +143,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-classes/:id', async (req, res) => {
+        app.get('/all-classes/:id', verifyToken, async (req, res) => {
             const { id } = req.params;
             const query = { _id: new ObjectId(id) };
             const result = await classCollection.find(query).toArray();
