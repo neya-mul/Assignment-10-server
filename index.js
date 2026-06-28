@@ -58,11 +58,11 @@ const verifyToken = async (req, res, next) => {
     }
 }
 
-async function run() {
-    try {
-        await client.connect();
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+// async function run() {
+//     try {
+//         await client.connect();
+//         await client.db("admin").command({ ping: 1 });
+//         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         // collections
         const db = client.db('fitness-cafe');
@@ -473,11 +473,11 @@ async function run() {
         });
 
 
-    } finally {
-        // await client.close();
-    }
-}
-run().catch(console.dir);
+//     } finally {
+//         // await client.close();
+//     }
+// }
+// run().catch(console.dir);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
