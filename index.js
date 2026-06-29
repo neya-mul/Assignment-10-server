@@ -41,8 +41,8 @@ const verifyToken = async (req, res, next) => {
     }
 
 
-    console.log("TOKEN RECEIVED:", token)
-    console.log("JWKS URL:", `${process.env.CLIENT_URL}/api/auth/jwks`)
+    // console.log("TOKEN RECEIVED:", token)
+    // console.log("JWKS URL:", `${process.env.CLIENT_URL}/api/auth/jwks`)
 
     try {
         const { payload } = await jwtVerify(token, JWKS)
