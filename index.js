@@ -60,9 +60,9 @@ const verifyToken = async (req, res, next) => {
 
 async function run() {
     try {
-//         await client.connect();
-//         await client.db("admin").command({ ping: 1 });
-//         console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        //         await client.connect();
+        //         await client.db("admin").command({ ping: 1 });
+        //         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
         // collections
         const db = client.db('fitness-cafe');
@@ -348,7 +348,7 @@ async function run() {
                 const exists = await myBookedClasesCollection.findOne({
                     $or: [
                         { classId, userId },
-                        { transactionId: transactionId } 
+                        { transactionId: transactionId }
                     ]
                 });
 
@@ -478,7 +478,7 @@ async function run() {
                 const { id } = req.params;
                 const { userEmail } = req.body;
                 if (!userEmail) return res.status(400).json({ error: "User email context is required." });
-                await userCollection.updateOne({ userEmail: userEmail }, { $set: { role: 'trainer' } });
+                await userCollection.updateOne({ email: userEmail }, { $set: { role: 'trainer' } });
                 await applyForTrainerCollection.deleteOne({ _id: new ObjectId(id) });
                 res.status(200).json({ success: true });
             } catch (error) {
@@ -506,7 +506,7 @@ async function run() {
                 }
 
                 const newComment = {
-                    _id: new ObjectId(), 
+                    _id: new ObjectId(),
                     userId,
                     userName,
                     text,
@@ -535,7 +535,7 @@ async function run() {
                 }
 
                 const newReply = {
-                    _id: new ObjectId(), 
+                    _id: new ObjectId(),
                     userId,
                     userName,
                     text,
@@ -578,7 +578,7 @@ async function run() {
                 const options = {
                     arrayFilters: [
                         { "c._id": new ObjectId(commentId) },
-                        { "r._id": new ObjectId(replyId), "r.userId": userId } 
+                        { "r._id": new ObjectId(replyId), "r.userId": userId }
                     ]
                 };
 
