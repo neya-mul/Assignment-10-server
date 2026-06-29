@@ -73,7 +73,6 @@ const verifyToken = async (req, res, next) => {
         const favoritesCollection = db.collection('favorites');
         const applyForTrainerCollection = db.collection('apply-for-trainer')
 
-        // 🛡️ SECURITY HELPER: Safely verify if a user's status is 'blocked'
         const isUserBlocked = async (userId) => {
             if (!userId) return false;
             try {
@@ -106,6 +105,8 @@ const verifyToken = async (req, res, next) => {
 
 
         app.get('/all-classes', async (req, res) => {
+
+
             try {
                 const { search, category } = req.query;
 
@@ -311,7 +312,6 @@ const verifyToken = async (req, res, next) => {
             }
         });
 
-        // 🎯 এটি আপনার আগের তৈরি করা PATCH রাউট যা ফ্রন্টএন্ড থেকে রিকোয়েস্ট গ্রহণ করে রোল পরিবর্তন করবে
         app.patch('/users/:id', async (req, res) => {
             try {
                 const { id } = req.params;
@@ -338,16 +338,22 @@ const verifyToken = async (req, res, next) => {
         app.post('/my-booked-classes', async (req, res) => {
             try {
                 const myBookedClases = req.body;
-                const { userId, classId } = myBookedClases;
+                const { userId, classId, transactionId } = myBookedClases;
 
                 const blocked = await isUserBlocked(userId);
                 if (blocked) {
                     return res.status(403).json({ error: "Your account is suspended. Booking operations restricted." });
                 }
 
-                const exists = await myBookedClasesCollection.findOne({ classId, userId });
+                const exists = await myBookedClasesCollection.findOne({
+                    $or: [
+                        { classId, userId },
+                        { transactionId: transactionId } 
+                    ]
+                });
+
                 if (exists) {
-                    return res.status(400).json({ error: "You are already registered for this class." });
+                    return res.status(400).json({ error: "You are already registered for this class or transaction processed." });
                 }
 
                 const result = await myBookedClasesCollection.insertOne(myBookedClases);
@@ -355,6 +361,15 @@ const verifyToken = async (req, res, next) => {
             } catch (error) {
                 console.error("Booking insert error:", error);
                 res.status(500).json({ error: "Failed to book class" });
+            }
+        });
+
+        app.get('/booked-classes', async (req, res) => {
+            try {
+                const result = await myBookedClasesCollection.find().toArray();
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ error: error.message });
             }
         });
 
@@ -458,7 +473,6 @@ const verifyToken = async (req, res, next) => {
             res.json(result)
         })
 
-        // --- NEW APPROVED FLOW CREATED IN LAST STEP (IF NEEDED) ---
         app.patch('/approve-trainer/:id', async (req, res) => {
             try {
                 const { id } = req.params;
@@ -473,11 +487,146 @@ const verifyToken = async (req, res, next) => {
         });
 
 
+
+
+
+
+
+
+
+        const { ObjectId } = require('mongodb');
+
+        app.post('/forum-posts/:id/comment', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { userId, userName, text } = req.body;
+
+                if (!userId || !text.trim()) {
+                    return res.status(400).json({ message: "Invalid comment data payload." });
+                }
+
+                const newComment = {
+                    _id: new ObjectId(), 
+                    userId,
+                    userName,
+                    text,
+                    createdAt: new Date()
+                };
+
+                const query = { _id: new ObjectId(id) };
+                await forumCollection.updateOne(query, { $push: { comments: newComment } });
+
+                const updatedPost = await forumCollection.findOne(query);
+                res.status(200).json({ updatedComments: updatedPost.comments || [] });
+            } catch (error) {
+                res.status(500).json({ message: "Server error processing comment pipeline.", error: error.message });
+            }
+        });
+
+
+
+        app.post('/forum-posts/:postId/comment/:commentId/reply', async (req, res) => {
+            try {
+                const { postId, commentId } = req.params;
+                const { userId, userName, text } = req.body;
+
+                if (!userId || !text.trim()) {
+                    return res.status(400).json({ message: "Invalid payload logic data." });
+                }
+
+                const newReply = {
+                    _id: new ObjectId(), 
+                    userId,
+                    userName,
+                    text,
+                    createdAt: new Date()
+                };
+
+                const filter = {
+                    _id: new ObjectId(postId),
+                    "comments._id": new ObjectId(commentId)
+                };
+
+                const updateDoc = {
+                    $push: { "comments.$.replies": newReply }
+                };
+
+                const result = await forumCollection.updateOne(filter, updateDoc);
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).json({ message: "Target node trace or comment not found." });
+                }
+
+                const updatedPost = await forumCollection.findOne({ _id: new ObjectId(postId) });
+                res.status(200).json({ updatedComments: updatedPost.comments || [] });
+
+            } catch (error) {
+                res.status(500).json({ message: "Internal nested engine structural collapse.", error: error.message });
+            }
+        });
+        app.patch('/forum-posts/:postId/comment/:commentId/reply/:replyId', async (req, res) => {
+            try {
+                const { postId, commentId, replyId } = req.params;
+                const { userId, text } = req.body;
+
+                const query = { _id: new ObjectId(postId) };
+
+                const filter = { _id: new ObjectId(postId) };
+                const updateDoc = {
+                    $set: { "comments.$[c].replies.$[r].text": text }
+                };
+                const options = {
+                    arrayFilters: [
+                        { "c._id": new ObjectId(commentId) },
+                        { "r._id": new ObjectId(replyId), "r.userId": userId } 
+                    ]
+                };
+
+                const result = await forumCollection.updateOne(filter, updateDoc, options);
+                if (result.matchedCount === 0) {
+                    return res.status(403).json({ message: "Operation blocked or path not traced." });
+                }
+
+                const updatedPost = await forumCollection.findOne(query);
+                res.status(200).json({ updatedComments: updatedPost.comments || [] });
+            } catch (error) {
+                res.status(500).json({ message: "Server error on reply update node.", error: error.message });
+            }
+        });
+
+        app.delete('/forum-posts/:postId/comment/:commentId/reply/:replyId', async (req, res) => {
+            try {
+                const { postId, commentId, replyId } = req.params;
+                const { userId } = req.body;
+
+                const query = { _id: new ObjectId(postId) };
+
+                const filter = {
+                    _id: new ObjectId(postId),
+                    "comments._id": new ObjectId(commentId)
+                };
+                const updateDoc = {
+                    $pull: { "comments.$.replies": { _id: new ObjectId(replyId), userId: userId } }
+                };
+
+                const result = await forumCollection.updateOne(filter, updateDoc);
+                if (result.modifiedCount === 0) {
+                    return res.status(403).json({ message: "Unauthorized destruction request or reply missing." });
+                }
+
+                const updatedPost = await forumCollection.findOne(query);
+                res.status(200).json({ updatedComments: updatedPost.comments || [] });
+            } catch (error) {
+                res.status(500).json({ message: "Server error on reply wiping execution.", error: error.message });
+            }
+        });
+
+
 //     } finally {
 //         // await client.close();
 //     }
 // }
-// run().catch(console.dir);
+run().catch(console.dir);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
