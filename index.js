@@ -385,7 +385,7 @@ async function run() {
             }
         });
 
-        app.get('/my-booked-classes/:userEmail', async (req, res) => {
+        app.get('/my-booked-classes/:userEmail',verifyToken, async (req, res) => {
             try {
                 const { userEmail } = req.params;
                 const result = await myBookedClasesCollection.find({ userEmail: userEmail }).toArray();
