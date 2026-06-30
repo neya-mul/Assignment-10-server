@@ -23,7 +23,7 @@ const client = new MongoClient(uri, {
     }
 });
 
-const JWKS = createRemoteJWKSet(new URL(`${process.env.NEXT_PUBLIC_URL}api/auth/jwks`)) // Note: Fixed URL slash
+const JWKS = createRemoteJWKSet(new URL(`${process.env.NEXT_PUBLIC_FRONTEND_URL}api/auth/jwks`)) // Note: Fixed URL slash
 
 const verifyToken = async (req, res, next) => {
     const authHeader = req?.headers.authorization
