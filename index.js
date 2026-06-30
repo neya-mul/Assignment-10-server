@@ -431,7 +431,7 @@ async function run() {
             }
         });
 
-        app.get('/favourites/:userId', async (req, res) => {
+        app.get('/favourites/:userId',verifyToken, async (req, res) => {
             const { userId } = req.params
             const result = await favoritesCollection.find({ userId: userId }).toArray()
             res.json(result)
