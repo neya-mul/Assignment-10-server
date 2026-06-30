@@ -458,7 +458,7 @@ async function run() {
         });
 
 
-        app.post('/apply-as-trainer', async (req, res) => {
+        app.post('/apply-as-trainer',verifyToken, async (req, res) => {
             const applyForTrainer = req.body
             const result = await applyForTrainerCollection.insertOne(applyForTrainer)
             res.json(result)
