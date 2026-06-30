@@ -49,6 +49,8 @@ const verifyToken = async (req, res, next) => {
 
         // 3. Attach the payload to the request object so your router endpoints can access user info
         req.user = payload
+        console.log(payload);
+        
 
         next()
     }
@@ -144,7 +146,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-classes/:id', async (req, res) => {
+        app.get('/all-classes/:id',verifyToken, async (req, res) => {
             const { id } = req.params;
             const query = { _id: new ObjectId(id) };
             const result = await classCollection.find(query).toArray();
@@ -222,7 +224,7 @@ async function run() {
             res.json(result)
         });
 
-        app.get('/forum-posts/:id', async (req, res) => {
+        app.get('/forum-posts/:id',verifyToken, async (req, res) => {
             const { id } = req.params
             const query = { _id: new ObjectId(id) };
 
