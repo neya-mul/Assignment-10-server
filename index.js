@@ -176,7 +176,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/my-classes/:trainerId', async (req, res) => {
+        app.get('/my-classes/:trainerId',verifyToken, async (req, res) => {
             const { trainerId } = req.params;
             const result = await classCollection
                 .find({ trainerId })
@@ -431,7 +431,7 @@ async function run() {
             }
         });
 
-        app.get('/favourites/:userId',verifyToken, async (req, res) => {
+        app.get('/favourites/:userId', async (req, res) => {
             const { userId } = req.params
             const result = await favoritesCollection.find({ userId: userId }).toArray()
             res.json(result)
