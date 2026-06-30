@@ -146,7 +146,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-classes/:id',verifyToken, async (req, res) => {
+        app.get('/all-classes/:id', async (req, res) => {
             const { id } = req.params;
             const query = { _id: new ObjectId(id) };
             const result = await classCollection.find(query).toArray();
@@ -224,7 +224,7 @@ async function run() {
             res.json(result)
         });
 
-        app.get('/forum-posts/:id',verifyToken, async (req, res) => {
+        app.get('/forum-posts/:id', async (req, res) => {
             const { id } = req.params
             const query = { _id: new ObjectId(id) };
 
@@ -302,7 +302,7 @@ async function run() {
             }
         });
 
-        // --- USER MANAGEMENT --
+        // --- USER MANAGEMENT ---
 
         app.get('/users', async (req, res) => {
             try {
