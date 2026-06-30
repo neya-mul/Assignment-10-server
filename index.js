@@ -302,7 +302,7 @@ async function run() {
             }
         });
 
-        // --- USER MANAGEMENT ---
+        // --- USER MANAGEMENT --
 
         app.get('/users', async (req, res) => {
             try {
