@@ -146,7 +146,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-classes/:id', async (req, res) => {
+        app.get('/all-classes/:id',verifyToken, async (req, res) => {
             const { id } = req.params;
             const query = { _id: new ObjectId(id) };
             const result = await classCollection.find(query).toArray();
