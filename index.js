@@ -216,7 +216,7 @@ async function run() {
         });
 
 
-        app.delete('/forum-posts/:id', async (req, res) => {
+        app.delete('/forum-posts/:id', verifyToken,async (req, res) => {
             const { id } = req.params
             const result = await forumCollection.deleteOne({
                 _id: new ObjectId(id)
